@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f9fc;
+  --foreground: #172033;
+  --muted: #65718b;
+  --border: #e8ecf3;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.form-input {
+  margin-top: 0.5rem;
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #e8ecf3;
+  background: #ffffff;
+  padding: 0.7rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #172033;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgb(129 140 248 / 0.12);
+}

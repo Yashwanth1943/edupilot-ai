@@ -1,0 +1,14 @@
+"use client";
+
+import { useState } from "react";
+import type { FormEvent } from "react";
+import Modal from "@/components/ui/modal";
+import type { Subject, SubjectStatus } from "@/types/dashboard";
+import type { SubjectInput } from "@/services/subjects";
+
+export default function SubjectForm({ subject, onClose, onSave }: { subject?: Subject; onClose: () => void; onSave: (input: SubjectInput) => void }) {
+  const [form, setForm] = useState<SubjectInput>(subject ? { name: subject.name, description: subject.description, department: subject.department, totalModules: subject.totalModules, status: subject.status } : { name: "", description: "", department: "", totalModules: 1, status: "Active" });
+  const update = <K extends keyof SubjectInput>(key: K, value: SubjectInput[K]) => setForm((current) => ({ ...current, [key]: value }));
+  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onSave(form); };
+  return <Modal title={subject ? "Edit subject" : "Add subject"} description="Subject details are stored in the local mock data service for this phase." onClose={onClose}><form onSubmit={submit} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-600 sm:col-span-2">Subject name<input required value={form.name} onChange={(event) => update("name", event.target.value)} className="form-input" placeholder="e.g. Biology" /></label><label className="text-xs font-semibold text-slate-600 sm:col-span-2">Description<textarea required value={form.description} onChange={(event) => update("description", event.target.value)} className="form-input min-h-24 resize-y" placeholder="What will students learn?" /></label><label className="text-xs font-semibold text-slate-600">Department or category<input required value={form.department} onChange={(event) => update("department", event.target.value)} className="form-input" placeholder="STEM" /></label><label className="text-xs font-semibold text-slate-600">Total modules<input required min={1} type="number" value={form.totalModules} onChange={(event) => update("totalModules", Number(event.target.value))} className="form-input" /></label><label className="text-xs font-semibold text-slate-600">Status<select value={form.status} onChange={(event) => update("status", event.target.value as SubjectStatus)} className="form-input"><option>Active</option><option>Draft</option><option>Archived</option></select></label></div><div className="flex justify-end gap-3 border-t border-slate-100 pt-5"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-500 hover:bg-slate-50">Cancel</button><button type="submit" className="rounded-xl bg-[#5b5ce2] px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-100 hover:bg-[#4c4dcc]">{subject ? "Save changes" : "Add subject"}</button></div></form></Modal>;
+}

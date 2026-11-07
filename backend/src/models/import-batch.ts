@@ -1,0 +1,6 @@
+import { Schema, model, type InferSchemaType } from "mongoose";
+const schema = new Schema({ institutionId: { type: Schema.Types.ObjectId, ref: "Institution", required: true, index: true }, batchId: { type: String, required: true }, idempotencyKey: { type: String, required: true }, fileName: { type: String, required: true }, status: { type: String, enum: ["Preview", "Completed", "Partially completed", "Failed"], default: "Preview" }, totalRows: { type: Number, default: 0 }, validRows: { type: Number, default: 0 }, importedRows: { type: Number, default: 0 }, successfulImports: { type: Number, default: 0 }, skippedRecords: { type: Number, default: 0 }, rejectedRecords: { type: Number, default: 0 }, errorReport: { type: [Schema.Types.Mixed], default: [] }, uploadedBy: { type: Schema.Types.ObjectId, ref: "User", required: true }, completionTimestamp: Date }, { timestamps: true, versionKey: false });
+schema.index({ institutionId: 1, batchId: 1 }, { unique: true });
+schema.index({ institutionId: 1, idempotencyKey: 1 }, { unique: true });
+export type ImportBatchDocument = InferSchemaType<typeof schema>;
+export const ImportBatchModel = model("ImportBatch", schema);

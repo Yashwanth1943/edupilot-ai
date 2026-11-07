@@ -1,0 +1,5 @@
+import { Schema, model, type InferSchemaType } from "mongoose";
+const schema = new Schema({ institutionId: { type: Schema.Types.ObjectId, ref: "Institution", required: true, index: true }, studentId: { type: Schema.Types.ObjectId, ref: "Student", required: true }, subjectId: { type: Schema.Types.ObjectId, ref: "Subject", required: true }, progressPercent: { type: Number, required: true, min: 0, max: 100 }, effectiveDate: { type: Date, required: true }, recordedAt: { type: Date, default: Date.now }, updatedBy: { type: Schema.Types.ObjectId, ref: "User", required: true }, mentorNotes: String, recordType: { type: String, enum: ["Manual", "Import"], default: "Manual" }, importBatchId: { type: Schema.Types.ObjectId, ref: "ImportBatch" } }, { versionKey: false });
+schema.index({ institutionId: 1, studentId: 1, subjectId: 1, effectiveDate: 1 }, { unique: true });
+export type ProgressRecordDocument = InferSchemaType<typeof schema>;
+export const ProgressRecordModel = model("ProgressRecord", schema);
