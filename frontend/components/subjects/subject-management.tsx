@@ -9,10 +9,14 @@ import { createSubject, deleteSubject, listSubjects, updateSubject } from "@/ser
 import { listStudentsForSubject } from "@/services/students";
 import type { Subject, SubjectStatus } from "@/types/dashboard";
 import type { SubjectInput } from "@/services/subjects";
+import { dataMode } from "@/services/data-mode";
+import ApiSubjectManagement from "@/components/subjects/api-subject-management";
 
 const statusClasses: Record<SubjectStatus, string> = { Active: "bg-emerald-50 text-emerald-600", Draft: "bg-amber-50 text-amber-600", Archived: "bg-slate-100 text-slate-500" };
 
-export default function SubjectManagement() {
+export default function SubjectManagement() { if (dataMode === "api") return <ApiSubjectManagement />; return <MockSubjectManagement />; }
+
+function MockSubjectManagement() {
   const [subjects, setSubjects] = useState<Subject[]>(() => listSubjects());
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | SubjectStatus>("All");

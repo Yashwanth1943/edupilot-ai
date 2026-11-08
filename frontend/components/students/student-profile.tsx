@@ -11,8 +11,12 @@ import { getSubjectById, listSubjects } from "@/services/subjects";
 import type { ProgressRecord } from "@/types/dashboard";
 import type { Student } from "@/types/dashboard";
 import { useState } from "react";
+import { dataMode } from "@/services/data-mode";
+import ApiStudentProfile from "@/components/students/api-student-profile";
 
-export default function StudentProfile({ studentId }: { studentId: string }) {
+export default function StudentProfile({ studentId }: { studentId: string }) { if (dataMode === "api") return <ApiStudentProfile studentId={studentId} />; return <MockStudentProfile studentId={studentId} />; }
+
+function MockStudentProfile({ studentId }: { studentId: string }) {
   const [student, setStudent] = useState<Student | undefined>(() => getStudentById(studentId));
   const [recordOpen, setRecordOpen] = useState(false);
   const [progressVersion, setProgressVersion] = useState(0);

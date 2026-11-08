@@ -10,10 +10,14 @@ import { compareProgress, correctProgress, getProgressSummary, listCorrections, 
 import { listStudents } from "@/services/students";
 import { listSubjects } from "@/services/subjects";
 import type { ProgressRecord, Student, Subject } from "@/types/dashboard";
+import { dataMode } from "@/services/data-mode";
+import ApiProgressManagement from "@/components/progress/api-progress-management";
 
 const formatDate = (value?: string) => value ? new Date(`${value}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
-export default function ProgressManagement() {
+export default function ProgressManagement() { if (dataMode === "api") return <ApiProgressManagement />; return <MockProgressManagement />; }
+
+function MockProgressManagement() {
   const [students] = useState<Student[]>(() => listStudents());
   const [subjects] = useState<Subject[]>(() => listSubjects());
   const [records, setRecords] = useState<ProgressRecord[]>(() => listProgressRecords());

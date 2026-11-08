@@ -1,7 +1,13 @@
 import { getProgressHistory, recordProgress } from "@/services/progress";
 import { listStudents } from "@/services/students";
 import { listSubjects } from "@/services/subjects";
+import { apiClient } from "@/services/api-client";
 import type { ColumnMapping, ImportBatch, ImportValidationIssue, ImportValidationRow, ParsedWorkbook, ParsedWorksheet } from "@/types/dashboard";
+
+const backendBatch = (raw: Record<string, unknown>): ImportBatch => ({ id: String(raw._id ?? raw.batchId ?? ""), fileName: String(raw.fileName ?? ""), uploadedAt: String(raw.createdAt ?? raw.uploadedAt ?? new Date().toISOString()), totalRows: Number(raw.totalRows ?? 0), successfulImports: Number(raw.successfulImports ?? raw.importedRows ?? 0), skippedRecords: Number(raw.skippedRecords ?? 0), rejectedRecords: Number(raw.rejectedRecords ?? 0), status: (raw.status === "Preview" ? "Completed" : String(raw.status ?? "Failed")) as ImportBatch["status"], errors: [] });
+export async function apiPreviewImport(file: File, mapping: ColumnMapping, worksheets?: string[]) { const result = await apiClient.imports.preview(file, mapping as Record<string, string>, worksheets); return { batch: backendBatch(result.batch as unknown as Record<string, unknown>), worksheets: result.worksheets as Array<{ name: string; headers: string[]; rowCount: number }>, rows: result.rows as ImportValidationRow[] }; }
+export async function apiConfirmImport(batchId: string) { return backendBatch(await apiClient.imports.execute(batchId) as unknown as Record<string, unknown>); }
+export async function apiListImportHistory() { const result = await apiClient.imports.history(); return result.items.map((item) => backendBatch(item as unknown as Record<string, unknown>)); }
 
 let importHistoryStore: ImportBatch[] = [];
 

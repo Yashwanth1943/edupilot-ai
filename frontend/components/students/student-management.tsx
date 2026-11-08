@@ -9,10 +9,14 @@ import { createStudent, listStudents, updateStudent } from "@/services/students"
 import { listSubjects } from "@/services/subjects";
 import type { Student, StudentStatus, Subject } from "@/types/dashboard";
 import type { StudentInput } from "@/services/students";
+import { dataMode } from "@/services/data-mode";
+import ApiStudentManagement from "@/components/students/api-student-management";
 
 function statusClass(status: StudentStatus) { return status === "Active" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"; }
 
-export default function StudentManagement() {
+export default function StudentManagement() { if (dataMode === "api") return <ApiStudentManagement />; return <MockStudentManagement />; }
+
+function MockStudentManagement() {
   const [students, setStudents] = useState<Student[]>(() => listStudents());
   const [subjects] = useState<Subject[]>(() => listSubjects());
   const [query, setQuery] = useState("");

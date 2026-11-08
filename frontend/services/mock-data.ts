@@ -14,7 +14,7 @@ export const navigationItems: NavItem[] = [
   { label: "Learning Progress", href: "/learning-progress", icon: "chart-no-axes-combined" },
   { label: "Excel Imports", href: "/excel-imports", icon: "file-spreadsheet" },
   { label: "AI Insights", href: "/ai-insights", icon: "sparkles" },
-  { label: "Settings", href: "/settings", icon: "settings" },
+  { label: "Settings", href: "/settings", icon: "settings", adminOnly: true },
 ];
 
 export const metrics: Metric[] = [

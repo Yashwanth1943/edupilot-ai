@@ -11,6 +11,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon: IconName;
+  adminOnly?: boolean;
 }
 
 export interface Metric {
@@ -57,6 +58,7 @@ export interface Subject {
   department: string;
   totalModules: number;
   status: SubjectStatus;
+  enrolledStudentCount?: number;
 }
 
 export interface LearningActivity {
