@@ -8,7 +8,7 @@ let studentStore: Student[] = [
   { id: "stu-005", studentId: "EP-2024-005", fullName: "Kabir Singh", email: "kabir.singh@example.com", phone: "+91 98765 43214", department: "Grade 9 · A", enrollmentDate: "2024-06-21", status: "Active", subjectIds: ["sub-science", "sub-history", "sub-art"], overallProgress: 69, subjectProgress: { "sub-science": 72, "sub-history": 66, "sub-art": 70 }, recentActivities: [{ id: "a6", title: "Submitted a project", description: "Uploaded the renewable energy presentation.", date: "Sep 20, 2024", type: "assessment" }], assessmentSummary: { completed: 14, averageScore: 77, nextAssessment: "World History · Oct 03" } },
 ];
 
-export interface StudentInput { studentId: string; fullName: string; email: string; phone?: string; department?: string; enrollmentDate: string; status: StudentStatus; subjectIds: string[]; }
+export interface StudentInput { studentId: string; fullName: string; email?: string; phone?: string; department?: string; enrollmentDate: string; status: StudentStatus; subjectIds: string[]; }
 export function listStudents(): Student[] { return [...studentStore]; }
 export function getStudentById(id: string): Student | undefined { return studentStore.find((student) => student.id === id); }
 export function createStudent(input: StudentInput): Student { const student: Student = { ...input, id: `stu-${Date.now()}`, overallProgress: 0, subjectProgress: Object.fromEntries(input.subjectIds.map((id) => [id, 0])), recentActivities: [], assessmentSummary: { completed: 0, averageScore: 0, nextAssessment: "Not scheduled" } }; studentStore = [student, ...studentStore]; return student; }

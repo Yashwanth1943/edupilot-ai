@@ -2,6 +2,38 @@ import { Router } from "express";
 import multer from "multer";
 import type { Env } from "../config/env.js";
 import { authenticate, requireRole } from "../middleware/auth.js";
-import { executeImport, listImports, previewImport } from "../controllers/imports.js";
-import { getImport, listImportErrors } from "../controllers/imports.js";
-export function importRoutes(env: Env) { const router = Router(); router.use(authenticate(env)); const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1 }, fileFilter: (_request, file, callback) => { const extension = file.originalname.toLowerCase().split(".").pop(); const allowedExtensions = ["csv", "xlsx", "xls"]; const allowedTypes = ["text/csv", "application/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream", "text/plain"]; if (!allowedExtensions.includes(extension ?? "") || !allowedTypes.includes(file.mimetype)) return callback(new Error("Only CSV, XLSX and XLS files are supported.")); callback(null, true); } }); router.post("/preview", requireRole("Admin", "Mentor"), upload.single("file"), previewImport); router.post("/:id/confirm", requireRole("Admin", "Mentor"), executeImport); router.post("/:id/execute", requireRole("Admin", "Mentor"), executeImport); router.get("/", listImports); router.get("/:id/errors", listImportErrors); router.get("/:id", getImport); return router; }
+import { executeImport, getImport, listImportErrors, listImports, previewImport, revalidateImport } from "../controllers/imports.js";
+
+export function importRoutes(env: Env) {
+  const router = Router();
+  router.use(authenticate(env));
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    fileFilter: (_request, file, callback) => {
+      const extension = file.originalname.toLowerCase().split(".").pop();
+      const allowedExtensions = ["csv", "xlsx", "xls"];
+      const allowedTypes = [
+        "text/csv",
+        "application/csv",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/octet-stream",
+        "text/plain"
+      ];
+      if (!allowedExtensions.includes(extension ?? "") || !allowedTypes.includes(file.mimetype)) {
+        return callback(new Error("Only CSV, XLSX and XLS files are supported."));
+      }
+      callback(null, true);
+    }
+  });
+
+  router.post("/preview", requireRole("Admin", "Mentor"), upload.single("file"), previewImport);
+  router.post("/:id/revalidate", requireRole("Admin", "Mentor"), revalidateImport);
+  router.post("/:id/confirm", requireRole("Admin", "Mentor"), executeImport);
+  router.post("/:id/execute", requireRole("Admin", "Mentor"), executeImport);
+  router.get("/", listImports);
+  router.get("/:id/errors", listImportErrors);
+  router.get("/:id", getImport);
+  return router;
+}

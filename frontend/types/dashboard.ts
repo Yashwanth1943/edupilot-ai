@@ -79,7 +79,7 @@ export interface Student {
   id: string;
   studentId: string;
   fullName: string;
-  email: string;
+  email?: string;
   phone?: string;
   department?: string;
   enrollmentDate: string;
@@ -127,12 +127,22 @@ export interface ProgressComparison {
 
 export type ImportStep = "upload" | "mapping" | "validation" | "preview" | "complete";
 export type ImportColumnKey = "studentId" | "studentName" | "subject" | "progressPercent" | "effectiveDate" | "mentorNotes";
-export type ImportRecordClass = "Valid" | "Warning" | "Invalid";
+export type ImportRecordClass = "Valid" | "Warning" | "Invalid" | "Skipped";
+
+export interface CustomFieldMapping {
+  key: string;
+  label: string;
+  sourceColumn: string;
+  dataType: "string" | "number" | "date" | "percentage";
+  storageDestination: "unpersisted" | "student_metadata" | "progress_metadata";
+}
 
 export interface ParsedWorksheet {
   name: string;
   headers: string[];
   rows: string[][];
+  rowCount?: number;
+  sampleRows?: string[][];
 }
 
 export interface ParsedWorkbook {
@@ -151,21 +161,63 @@ export interface ColumnMapping {
   progressPercent?: string;
   effectiveDate?: string;
   mentorNotes?: string;
+  subjectColumns?: Record<string, string>;
+  customFields?: CustomFieldMapping[];
+  [key: string]: unknown;
 }
+
+export type StudentImportStatus =
+  | "Existing Student"
+  | "New Student – Will Create"
+  | "Ambiguous Student"
+  | "Missing Identity"
+  | "Identity Conflict";
+
+export type ProgressImportStatus =
+  | "Will Import"
+  | "No Update"
+  | "Unchanged"
+  | "Invalid"
+  | "Duplicate";
 
 export interface ImportValidationIssue {
   code: string;
   message: string;
-  severity: "warning" | "error";
+  severity: "warning" | "error" | "info";
 }
 
 export interface ImportValidationRow {
+  worksheetName?: string;
   rowNumber: number;
   values: Record<string, string>;
   classification: ImportRecordClass;
+  studentStatus?: StudentImportStatus;
+  progressStatus?: ProgressImportStatus;
   issues: ImportValidationIssue[];
   resolvedStudentId?: string;
   resolvedSubjectId?: string;
+  previousProgress?: number | null;
+  changeType?: "Improving" | "Decreased" | "Unchanged" | "No update" | "New";
+  difference?: number | null;
+  action?: "Insert" | "Skip" | "Reject";
+  isDateDefaulted?: boolean;
+}
+
+export interface ImportSummary {
+  total: number;
+  existingStudentsMatched: number;
+  newStudentsToCreate: number;
+  ambiguousIdentities: number;
+  studentsMissingIdentifiers: number;
+  identityConflicts: number;
+  progressToImport: number;
+  progressSkipped: number;
+  progressRejected: number;
+  progressUnchanged: number;
+  valid?: number;
+  skipped?: number;
+  unchanged?: number;
+  invalid?: number;
 }
 
 export interface ImportBatch {
@@ -175,6 +227,7 @@ export interface ImportBatch {
   totalRows: number;
   successfulImports: number;
   skippedRecords: number;
+  unchangedRecords?: number;
   rejectedRecords: number;
   status: "Completed" | "Partially completed" | "Failed";
   errors: ImportValidationRow[];

@@ -7,12 +7,103 @@ async function ensureCsrf() { if (csrfToken) return csrfToken; const response = 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> { const isMutation = !["GET", "HEAD", "OPTIONS"].includes(options.method ?? "GET"); const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData; const token = isMutation ? await ensureCsrf() : undefined; const response = await fetch(`${apiBaseUrl}${path}`, { ...options, credentials: "include", headers: { ...(isFormData ? {} : { "Content-Type": "application/json" }), ...(token ? { "x-csrf-token": token } : {}), ...options.headers } }); if (!response.ok) { const body = await response.json().catch(() => ({})) as { error?: { message?: string; details?: unknown } }; if (response.status === 403) csrfToken = undefined; throw new ApiClientError(body.error?.message ?? "API request failed.", response.status, body.error?.details); } if (response.status === 204) return undefined as T; const body = await response.json() as { data: T }; return body.data; }
 async function requestList<T>(path: string) { const response = await fetch(`${apiBaseUrl}${path}`, { credentials: "include", headers: { Accept: "application/json" } }); if (!response.ok) { const body = await response.json().catch(() => ({})) as { error?: { message?: string; details?: unknown } }; throw new ApiClientError(body.error?.message ?? "API request failed.", response.status, body.error?.details); } const body = await response.json() as { data: T; meta: { page: number; limit: number; total: number; pages: number } }; return { items: body.data, meta: body.meta }; }
 
+async function downloadFile(path: string, defaultFilename: string): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    credentials: "include",
+    headers: {
+      Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
+  });
+
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => ({}))) as {
+      error?: { message?: string; details?: unknown };
+    };
+    throw new ApiClientError(
+      errorBody?.error?.message ?? "Failed to download export file.",
+      response.status,
+      errorBody?.error?.details
+    );
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition");
+  let filename = defaultFilename;
+  if (disposition) {
+    const match = /filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?/i.exec(disposition);
+    if (match && match[1]) {
+      filename = decodeURIComponent(match[1]);
+    }
+  }
+
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export const apiClient = {
   setup: { status: () => request<{ initialized: boolean }>("/setup/status"), initialize: (input: { institutionName: string; institutionCode: string; adminName: string; adminEmail: string; adminPassword: string }) => request("/setup/initialize", { method: "POST", body: JSON.stringify(input) }) },
-  auth: { login: (input: { email: string; password: string }) => request("/auth/login", { method: "POST", body: JSON.stringify(input) }), logout: () => request<void>("/auth/logout", { method: "POST" }), me: () => request("/auth/me") },
+  auth: {
+    login: (input: { email: string; password: string }) => request("/auth/login", { method: "POST", body: JSON.stringify(input) }),
+    logout: async () => {
+      try {
+        await request<void>("/auth/logout", { method: "POST" });
+      } finally {
+        csrfToken = undefined;
+      }
+    },
+    me: () => request("/auth/me")
+  },
   students: { list: (query = "") => requestList<Student[]>(`/students${query ? `?${query}` : ""}`), get: (id: string) => request<Student>(`/students/${id}`), getSubjects: (id: string) => request<unknown[]>(`/students/${id}/subjects`), create: (input: unknown) => request<Student>("/students", { method: "POST", body: JSON.stringify(input) }), update: (id: string, input: unknown) => request<Student>(`/students/${id}`, { method: "PATCH", body: JSON.stringify(input) }), archive: (id: string) => request<void>(`/students/${id}`, { method: "DELETE" }), assignSubject: (studentId: string, subjectId: string) => request(`/students/${studentId}/subjects`, { method: "POST", body: JSON.stringify({ subjectId }) }), removeSubject: (studentId: string, subjectId: string) => request(`/students/${studentId}/subjects/${subjectId}`, { method: "DELETE" }) },
   subjects: { list: (query = "") => requestList<Subject[]>(`/subjects${query ? `?${query}` : ""}`), get: (id: string) => request<Subject>(`/subjects/${id}`), create: (input: unknown) => request<Subject>("/subjects", { method: "POST", body: JSON.stringify(input) }), update: (id: string, input: unknown) => request<Subject>(`/subjects/${id}`, { method: "PATCH", body: JSON.stringify(input) }), remove: (id: string) => request<void>(`/subjects/${id}`, { method: "DELETE" }) },
   progress: { list: (query = "") => requestList<ProgressRecord[]>(`/progress${query ? `?${query}` : ""}`), create: (input: unknown) => request<ProgressRecord>("/progress", { method: "POST", body: JSON.stringify(input) }), compare: (query: string) => request(`/progress/compare?${query}`), summary: (query: string) => request(`/progress/summary?${query}`), correct: (id: string, input: unknown) => request(`/progress/${id}/corrections`, { method: "POST", body: JSON.stringify(input) }) },
-  imports: { history: () => requestList<ImportBatch[]>("/imports"), get: (id: string) => request<ImportBatch>(`/imports/${id}`), errors: (id: string) => request<unknown[]>(`/imports/${id}/errors`), preview: (file: File, mapping: Record<string, string>, worksheets?: string[]) => { const body = new FormData(); body.append("file", file); body.append("mapping", JSON.stringify(mapping)); if (worksheets) body.append("worksheets", JSON.stringify(worksheets)); return request<{ batch: ImportBatch; worksheets: unknown[]; rows: unknown[] }>("/imports/preview", { method: "POST", body, headers: { "Idempotency-Key": crypto.randomUUID() } }); }, execute: (batchId: string) => request<ImportBatch>(`/imports/${batchId}/confirm`, { method: "POST" }) },
+  imports: {
+    history: () => requestList<ImportBatch[]>("/imports"),
+    get: (id: string) => request<ImportBatch>(`/imports/${id}`),
+    errors: (id: string) => request<unknown[]>(`/imports/${id}/errors`),
+    preview: (file: File, mapping?: Record<string, unknown>, worksheets?: string[]) => {
+      const body = new FormData();
+      body.append("file", file);
+      body.append("mapping", JSON.stringify(mapping));
+      if (worksheets) body.append("worksheets", JSON.stringify(worksheets));
+      return request<{ batch: ImportBatch; worksheets: unknown[]; rows: unknown[]; summary: unknown }>("/imports/preview", {
+        method: "POST",
+        body,
+        headers: { "Idempotency-Key": crypto.randomUUID() }
+      });
+    },
+    revalidate: (batchId: string, rows: unknown[]) =>
+      request<{ batch: ImportBatch; rows: unknown[]; summary: unknown }>(`/imports/${batchId}/revalidate`, {
+        method: "POST",
+        body: JSON.stringify({ rows })
+      }),
+    execute: (batchId: string, rows?: unknown[]) =>
+      request<ImportBatch>(`/imports/${batchId}/confirm`, {
+        method: "POST",
+        ...(rows ? { body: JSON.stringify({ rows }) } : {})
+      })
+  },
   dashboard: { overview: (limit = 8) => request(`/dashboard/overview?limit=${limit}`) },
+  exports: {
+    students: (query = "") =>
+      downloadFile(
+        `/exports/students.xlsx${query ? `?${query}` : ""}`,
+        "EduPilot_Students_Export.xlsx"
+      ),
+    progress: (query = "") =>
+      downloadFile(
+        `/exports/progress.xlsx${query ? `?${query}` : ""}`,
+        "EduPilot_Progress_Export.xlsx"
+      ),
+    studentProgress: (studentId: string, query = "") =>
+      downloadFile(
+        `/exports/students/${studentId}/progress.xlsx${query ? `?${query}` : ""}`,
+        `EduPilot_${studentId}_Progress.xlsx`
+      )
+  }
 };

@@ -28,6 +28,7 @@ logs/
 uploads/
 tmp/
 temp/
+scratch/
 
 # Caches and tooling output
 .cache/

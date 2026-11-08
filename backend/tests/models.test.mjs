@@ -18,6 +18,15 @@ test("required fields and enum/range validation are enforced without a database"
   const student = new StudentModel({ institutionId: ids.institution, studentId: "STU001", fullName: "Ada Lovelace", email: "ada@example.com", enrollmentDate: new Date() });
   assert.equal(student.validateSync(), undefined);
 
+  const studentNoContact = new StudentModel({ institutionId: ids.institution, studentId: "STU002", fullName: "Alan Turing", enrollmentDate: new Date() });
+  assert.equal(studentNoContact.validateSync(), undefined);
+
+  const studentEmptyContact = new StudentModel({ institutionId: ids.institution, studentId: "STU003", fullName: "Grace Hopper", email: "", phone: "", enrollmentDate: new Date() });
+  assert.equal(studentEmptyContact.validateSync(), undefined);
+
+  const studentInvalidEmail = new StudentModel({ institutionId: ids.institution, studentId: "STU004", fullName: "Invalid Contact", email: "not-an-email", enrollmentDate: new Date() });
+  assert.ok(studentInvalidEmail.validateSync()?.errors.email);
+
   const invalidProgress = new ProgressRecordModel({ institutionId: ids.institution, studentId: ids.student, subjectId: ids.subject, progressPercent: 101, effectiveDate: new Date(), updatedBy: ids.user });
   assert.ok(invalidProgress.validateSync()?.errors.progressPercent);
 

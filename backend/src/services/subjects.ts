@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { AssignmentModel } from "../models/assignment.js";
 import { SubjectModel } from "../models/subject.js";
 import { pagination } from "../utils/pagination.js";
@@ -13,7 +14,7 @@ export async function listSubjects(institutionId: string, query: Record<string, 
   const [items, total, counts] = await Promise.all([
     SubjectModel.find(filter).sort({ [sortField]: sortDirection }).skip(skip).limit(limit),
     SubjectModel.countDocuments(filter),
-    AssignmentModel.aggregate([{ $match: { institutionId, status: "Active" } }, { $group: { _id: "$subjectId", count: { $sum: 1 } } }]),
+    AssignmentModel.aggregate([{ $match: { institutionId: new Types.ObjectId(institutionId), status: "Active" } }, { $group: { _id: "$subjectId", count: { $sum: 1 } } }]),
   ]);
   const countBySubject = new Map(counts.map((entry) => [entry._id.toString(), entry.count]));
   return { items: items.map((item) => ({ ...item.toObject(), enrolledStudentCount: countBySubject.get(item._id.toString()) ?? 0 })), meta: { page, limit, total, pages: Math.ceil(total / limit) } };
